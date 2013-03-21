@@ -3219,13 +3219,6 @@ static LGE_TOUCH_ATTR(pen_enable, S_IRUGO | S_IWUSR, show_pen_enable, NULL);
 static LGE_TOUCH_ATTR(ts_noise, S_IRUGO | S_IWUSR, show_ts_noise, NULL);
 #endif
 
-static LGE_TOUCH_ATTR(ignore_pressure_gap, S_IRUGO | S_IWUSR, show_ignore_pressure_gap, store_ignore_pressure_gap);
-static LGE_TOUCH_ATTR(touch_max_count, S_IRUGO | S_IWUSR, show_touch_max_count, store_touch_max_count);
-static LGE_TOUCH_ATTR(delta_max, S_IRUGO | S_IWUSR, show_delta_max, store_delta_max);
-static LGE_TOUCH_ATTR(max_pressure, S_IRUGO | S_IWUSR, show_max_pressure, store_max_pressure);
-static LGE_TOUCH_ATTR(direction_count, S_IRUGO | S_IWUSR, show_direction_count, store_direction_count);
-static LGE_TOUCH_ATTR(time_to_max_pressure, S_IRUGO | S_IWUSR, show_time_to_max_pressure, store_time_to_max_pressure);
-
 static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_platform_data.attr,
 	&lge_touch_attr_firmware.attr,
