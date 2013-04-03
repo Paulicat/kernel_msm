@@ -30,7 +30,7 @@ VREG_CONSUMERS(L2) = {
 	REGULATOR_SUPPLY("8921_l2",		NULL),
 	REGULATOR_SUPPLY("dsi_vdda",		"mipi_dsi.1"),
 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.0"),
-	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.1"), 
+	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.1"),
 };
 VREG_CONSUMERS(L3) = {
 	REGULATOR_SUPPLY("8921_l3",		NULL),
@@ -49,11 +49,7 @@ VREG_CONSUMERS(L5) = {
 };
 VREG_CONSUMERS(L6) = {
 	REGULATOR_SUPPLY("8921_l6",		NULL),
-	#if defined(CONFIG_MMC_MSM_SDC3_SUPPORT)
-		REGULATOR_SUPPLY("sdc_vdd",    "msm_sdcc.3"),
-	#else
-		REGULATOR_SUPPLY("earjack_debug",		NULL),
-	#endif
+        REGULATOR_SUPPLY("sdc_vdd",             "msm_sdcc.3"),
 };
 VREG_CONSUMERS(L7) = {
 	REGULATOR_SUPPLY("8921_l7",		NULL),
@@ -112,9 +108,7 @@ VREG_CONSUMERS(L17) = {
 };
 VREG_CONSUMERS(L18) = {
 	REGULATOR_SUPPLY("8921_l18",		NULL),
-	#ifdef CONFIG_SLIMPORT_ANX7808
-		REGULATOR_SUPPLY("slimport_dvdd",		NULL),
-	#endif
+	REGULATOR_SUPPLY("slimport_dvdd",		NULL),
 };
 
 /* Power setting for 13M AF */
@@ -499,30 +493,15 @@ apq8064_gpio_regulator_pdata[] __devinitdata = {
 /* SAW regulator constraints */
 struct regulator_init_data msm8064_saw_regulator_pdata_8921_s5 =
 	/*	      ID  vreg_name	       min_uV   max_uV */
-#ifdef CONFIG_CPU_OVERCLOCK
-	SAW_VREG_INIT(S5, "8921_s5",	       850000, 1450000);
-#else
-	SAW_VREG_INIT(S5, "8921_s5",	       850000, 1300000);
-#endif
+	SAW_VREG_INIT(S5, "8921_s5",	       500000, 1200000);
 struct regulator_init_data msm8064_saw_regulator_pdata_8921_s6 =
-#ifdef CONFIG_CPU_OVERCLOCK
-	SAW_VREG_INIT(S6, "8921_s6",	       850000, 1450000);
-#else
-	SAW_VREG_INIT(S6, "8921_s6",	       850000, 1300000);
-#endif
+	SAW_VREG_INIT(S6, "8921_s6",	       500000, 1200000);
+
 struct regulator_init_data msm8064_saw_regulator_pdata_8821_s0 =
 	/*	      ID       vreg_name	min_uV  max_uV */
-#ifdef CONFIG_CPU_OVERCLOCK
-	SAW_VREG_INIT(8821_S0, "8821_s0",       850000, 1450000);
-#else
-	SAW_VREG_INIT(8821_S0, "8821_s0",       850000, 1300000);
-#endif
+	SAW_VREG_INIT(8821_S0, "8821_s0",       500000, 1200000);
 struct regulator_init_data msm8064_saw_regulator_pdata_8821_s1 =
-#ifdef CONFIG_CPU_OVERCLOCK
-	SAW_VREG_INIT(8821_S1, "8821_s1",       850000, 1450000);
-#else
-	SAW_VREG_INIT(8821_S1, "8821_s1",       850000, 1300000);
-#endif
+	SAW_VREG_INIT(8821_S1, "8821_s1",       500000, 1200000);
 
 /* PM8921 regulator constraints */
 struct pm8xxx_regulator_platform_data
@@ -555,11 +534,7 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
 	RPM_LDO(L3,  0, 1, 0, 3075000, 3500000, NULL,          0,     0),
 	RPM_LDO(L4,  1, 1, 0, 1800000, 1800000, NULL,          0, 10000),
 	RPM_LDO(L5,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
-	#if defined(CONFIG_MMC_MSM_SDC3_SUPPORT)
-		RPM_LDO(L6,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
-	#else
-		RPM_LDO(L6,  0, 1, 0, 3000000, 3000000, NULL,          0,     0),
-	#endif
+	RPM_LDO(L6,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
 	RPM_LDO(L7,  0, 1, 0, 1850000, 2950000, NULL,          0,     0),
 	RPM_LDO(L8,  0, 1, 0, 2800000, 3000000, NULL,          0,     0),
 	RPM_LDO(L9,  0, 1, 0, 3000000, 3000000, NULL,          0,     0),
