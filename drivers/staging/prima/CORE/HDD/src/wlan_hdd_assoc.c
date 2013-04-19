@@ -724,7 +724,7 @@ static VOS_STATUS hdd_roamDeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId 
     vosStatus = WLANTL_ClearSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, staId );
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: WLANTL_ClearSTAClient() failed to for staID %d.  "
                    "Status= %d [0x%08lX]",
                    __func__, staId, vosStatus, vosStatus );
@@ -853,7 +853,7 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     vstatus = hdd_roamDeregisterSTA( pAdapter, pHddStaCtx->conn_info.staId [0] );
     if ( !VOS_IS_STATUS_SUCCESS(vstatus ) )
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "hdd_roamDeregisterSTA() failed to for staID %d.  "
                   "Status= %d [0x%x]",
                     pHddStaCtx->conn_info.staId[0], status, status );
@@ -1880,8 +1880,8 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-                     "WLANTL_RegisterSTAClient() failed to register.  \
-                            Status= %d [0x%08lX]", vosStatus, vosStatus );
+                     "%s: WLANTL_RegisterSTAClient() failed to register.  \
+                            Status= %d [0x%08lX]", __func__, vosStatus, vosStatus );
          return vosStatus;      
     }                                            
     
@@ -1991,7 +1991,7 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                 {
                     status = eHAL_STATUS_FAILURE;
                     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                    "no availalbe slot in conn_info. staId %d cannot be stored", pRoamInfo->staId);
+                    "%s: no available slot in conn_info. staId %d cannot be stored", __func__, pRoamInfo->staId);
                 }
                 pAdapter->tdlsAddStaStatus = status;
             }
@@ -2087,8 +2087,8 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
 
                     status = eHAL_STATUS_SUCCESS ;
                 }
-                wlan_hdd_tdls_check_bmps(pAdapter);
             }
+            wlan_hdd_tdls_check_bmps(pAdapter);
             break ;
         }
         default:

@@ -112,7 +112,7 @@
 #define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
 
-#define FEATURE_NOT_SUPPORTED 128
+#define FEATURE_NOT_SUPPORTED 127
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 #define WDI_PNO_VERSION_MASK 0x8000
@@ -19780,7 +19780,7 @@ WDI_ProcessHALDumpCmdRsp
 
       wpalMemoryCopy( wdiHALDumpCmdRsp.pBuffer,
                   &halDumpCmdRspParams.rspBuffer, 
-                  sizeof(wdiHALDumpCmdRsp.usBufferLen));
+                  halDumpCmdRspParams.rspLength);
   }
 
   /*Notify UMAC*/
@@ -22062,8 +22062,8 @@ WDI_2_HAL_STOP_REASON
   {
   case WDI_STOP_TYPE_SYS_RESET:
     return HAL_STOP_TYPE_SYS_RESET;
-  case WDI_DRIVER_TYPE_MFG:
-    return WDI_STOP_TYPE_SYS_DEEP_SLEEP;
+  case WDI_STOP_TYPE_SYS_DEEP_SLEEP:
+    return HAL_STOP_TYPE_SYS_DEEP_SLEEP;
   case WDI_STOP_TYPE_RF_KILL:
     return HAL_STOP_TYPE_RF_KILL;
   }
@@ -22907,6 +22907,14 @@ WDI_ExtractRequestCBFromEvent
     *ppfnReqCB   =  ((WDI_EnterUapsdReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_EnterUapsdReqParamsType*)pEvent->pEventData)->pUserData;
      break;
+  case  WDI_EXIT_UAPSD_REQ:
+    *ppfnReqCB   =  ((WDI_ExitUapsdReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_ExitUapsdReqParamsType*)pEvent->pEventData)->pUserData;
+     break;
+  case  WDI_SET_UAPSD_PARAM_REQ:
+    *ppfnReqCB   =  ((WDI_SetUapsdAcParamsReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_SetUapsdAcParamsReqParamsType*)pEvent->pEventData)->pUserData;
+     break;
   case  WDI_UPDATE_UAPSD_PARAM_REQ:
     *ppfnReqCB   =  ((WDI_UpdateUapsdReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_UpdateUapsdReqParamsType*)pEvent->pEventData)->pUserData;
@@ -22943,6 +22951,10 @@ WDI_ExtractRequestCBFromEvent
     *ppfnReqCB   =  ((WDI_WowlEnterReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_WowlEnterReqParamsType*)pEvent->pEventData)->pUserData;
      break;
+  case  WDI_WOWL_EXIT_REQ:
+    *ppfnReqCB   =  ((WDI_WowlExitReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_WowlExitReqParamsType*)pEvent->pEventData)->pUserData;
+     break;
   case  WDI_CONFIGURE_APPS_CPU_WAKEUP_STATE_REQ:
     *ppfnReqCB   =  ((WDI_ConfigureAppsCpuWakeupStateReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_ConfigureAppsCpuWakeupStateReqParamsType*)pEvent->pEventData)->pUserData;
@@ -22959,9 +22971,28 @@ WDI_ExtractRequestCBFromEvent
     *ppfnReqCB   =  ((WDI_KeepAliveReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_KeepAliveReqParamsType*)pEvent->pEventData)->pUserData;
     break;
+#if defined FEATURE_WLAN_SCAN_PNO
+  case WDI_SET_PREF_NETWORK_REQ:
+    *ppfnReqCB   =  ((WDI_PNOScanReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_PNOScanReqParamsType*)pEvent->pEventData)->pUserData;
+    break;
+  case WDI_SET_RSSI_FILTER_REQ:
+    *ppfnReqCB   =  ((WDI_SetRssiFilterReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_SetRssiFilterReqParamsType*)pEvent->pEventData)->pUserData;
+    break;
+  case WDI_UPDATE_SCAN_PARAMS_REQ:
+    *ppfnReqCB   =  ((WDI_UpdateScanParamsInfoType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_UpdateScanParamsInfoType*)pEvent->pEventData)->pUserData;
+    break;
+#endif
   case WDI_SET_TX_PER_TRACKING_REQ:
     *ppfnReqCB   =  ((WDI_SetTxPerTrackingReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_SetTxPerTrackingReqParamsType*)pEvent->pEventData)->pUserData;
+    break;
+#if defined WLAN_FEATURE_PACKET_FILTERING
+  case WDI_8023_MULTICAST_LIST_REQ:
+    *ppfnReqCB   =  ((WDI_RcvFltPktSetMcListReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_RcvFltPktSetMcListReqParamsType*)pEvent->pEventData)->pUserData;
     break;
   case WDI_RECEIVE_FILTER_SET_FILTER_REQ:
     *ppfnReqCB   =  ((WDI_SetRcvPktFilterReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
@@ -22975,6 +23006,21 @@ WDI_ExtractRequestCBFromEvent
     *ppfnReqCB   =  ((WDI_RcvFltPktClearReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_RcvFltPktClearReqParamsType*)pEvent->pEventData)->pUserData;
     break;
+#endif
+  case WDI_SET_POWER_PARAMS_REQ:
+    *ppfnReqCB   =  ((WDI_SetPowerParamsReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_SetPowerParamsReqParamsType*)pEvent->pEventData)->pUserData;
+    break;
+#if defined WLAN_FEATURE_GTK_OFFLOAD
+  case WDI_GTK_OFFLOAD_REQ:
+    *ppfnReqCB   =  ((WDI_GtkOffloadReqMsg*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_GtkOffloadReqMsg*)pEvent->pEventData)->pUserData;
+    break;
+  case WDI_GTK_OFFLOAD_GETINFO_REQ:
+    *ppfnReqCB   =  ((WDI_GtkOffloadGetInfoReqMsg*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_GtkOffloadGetInfoReqMsg*)pEvent->pEventData)->pUserData;
+    break;
+#endif
 
   default:
     *ppfnReqCB   =  NULL;
@@ -24319,6 +24365,7 @@ WDI_Process8023MulticastListReq
                   "WDI_Process8023MulticastListReq() %x %x %x",
                   pEventData, pwdiFltPktSetMcListReqParamsType,
                   wdi8023MulticastListCb);
+      wpalMemoryFree(pRcvFltMcAddrListType);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE;
    }
