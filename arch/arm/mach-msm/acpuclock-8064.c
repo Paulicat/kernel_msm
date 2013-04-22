@@ -116,7 +116,7 @@ static struct msm_bus_scale_pdata bus_scale_data __initdata = {
 };
 
 static struct l2_level l2_freq_tbl[] __initdata __initdata = {
-    [0]  = { {  192000, PLL_8, 0, 2, 0x00 }, 875000, 875000, 1 },
+    [0]  = { {  162000, PLL_8, 0, 2, 0x00 }, 850000, 850000, 1 },
     [1]  = { {  288000, HFPLL, 0, 2, 0x20 }, 975000, 975000, 1 },
 	[2]  = { {  384000, HFPLL, 0, 2, 0x24 }, 1000000, 1000000, 1 },
 	[3]  = { {  486000, HFPLL, 2, 0, 0x28 }, 1000000, 1000000, 2 },
@@ -136,7 +136,7 @@ static struct l2_level l2_freq_tbl[] __initdata __initdata = {
 };
 
 static struct acpu_level acpu_freq_tbl_slow[] __initdata = {
-    { 1, {   192000, PLL_8, 0, 2, 0x00 }, L2(0),   875000 },
+    { 1, {   162000, PLL_8, 0, 2, 0x00 }, L2(0),   850000 },
     { 1, {   288000, HFPLL, 0, 2, 0x20 }, L2(0),   900000 },
 	//{ 0, {   384000, HFPLL, 0, 2, 0x20 }, L2(6),   875000 },
 	//{ 1, {   486000, HFPLL, 2, 0, 0x24 }, L2(6),   875000 },
@@ -163,7 +163,7 @@ static struct acpu_level acpu_freq_tbl_slow[] __initdata = {
 };
 
 static struct acpu_level acpu_freq_tbl_nom[] __initdata = {
-    { 1, {   192000, PLL_8, 0, 2, 0x00 }, L2(0),   850000 },
+    { 1, {   162000, PLL_8, 0, 2, 0x00 }, L2(0),   825000 },
     { 1, {   288000, HFPLL, 0, 2, 0x20 }, L2(0),   875000 },
 	//{ 0, {   384000, HFPLL, 0, 2, 0x20 }, L2(6),   825000 },
 	//{ 1, {   486000, HFPLL, 2, 0, 0x24 }, L2(6),   825000 },
@@ -190,7 +190,7 @@ static struct acpu_level acpu_freq_tbl_nom[] __initdata = {
 };
 
 static struct acpu_level acpu_freq_tbl_fast[] __initdata = {
-    { 1, {   192000, PLL_8, 0, 2, 0x00 }, L2(0),   800000 },
+    { 1, {   162000, PLL_8, 0, 2, 0x00 }, L2(0),   775000 },
     { 1, {   288000, HFPLL, 0, 2, 0x20 }, L2(0),   850000 },
 	//{ 0, {   384000, HFPLL, 0, 2, 0x20 }, L2(6),   775000 },
 	//{ 1, {   486000, HFPLL, 2, 0, 0x24 }, L2(6),   775000 },
@@ -217,7 +217,7 @@ static struct acpu_level acpu_freq_tbl_fast[] __initdata = {
 };
 
 static struct acpu_level acpu_freq_tbl_faster[] __initdata = {
-    { 1, {   192000, PLL_8, 0, 2, 0x00 }, L2(0),   800000 },
+    { 1, {   162000, PLL_8, 0, 2, 0x00 }, L2(0),   775000 },
     { 1, {   288000, HFPLL, 0, 2, 0x20 }, L2(0),   825000 },
     //{ 0, {   384000, HFPLL, 0, 2, 0x20 }, L2(6),   775000 },
     //{ 1, {   486000, HFPLL, 2, 0, 0x24 }, L2(6),   775000 },
@@ -259,7 +259,7 @@ static struct acpuclk_krait_params acpuclk_8064_params __initdata = {
 	.l2_freq_tbl_size = sizeof(l2_freq_tbl),
 	.bus_scale = &bus_scale_data,
 	.qfprom_phys_base = 0x00700000,
-	.stby_khz = 192000,
+	.stby_khz = 162000,
 };
 
 static int __init acpuclk_8064_probe(struct platform_device *pdev)
