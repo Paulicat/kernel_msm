@@ -39,6 +39,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+
 #ifndef WLAN_QCT_WDI_I_H
 #define WLAN_QCT_WDI_I_H
 
@@ -54,8 +55,8 @@ DESCRIPTION
   module to be used by the DAL Data Path Core. 
   
       
-  Copyright (c) 2010 QUALCOMM Incorporated. All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Copyright (c) 2010 Qualcomm Technologies, Inc. All Rights Reserved.
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -1088,9 +1089,6 @@ typedef struct
 
   /*timestamp when we get response timer event*/
   wpt_uint32                  uTimeStampRspTmrExp;
-
-  /* enable/disable SSR on WDI timeout */
-  wpt_boolean                 bEnableSSR;
 }WDI_ControlBlockType; 
 
 
@@ -4599,19 +4597,24 @@ WDI_FindEmptySession
 );
 
 /**
- @brief Helper routine used to get the total count of active 
+ @brief Helper routine used to get the total count of active
         sessions
-  
- 
- @param  pWDICtx:       pointer to the WLAN DAL context 
-  
+
+
+ @param  pWDICtx:       pointer to the WLAN DAL context
+         macBSSID:      pointer to BSSID. If NULL, get all the session.
+                        If not NULL, count ActiveSession by excluding (TRUE) or including (FALSE) skipBSSID.
+         skipBSSID:     if TRUE, get all the sessions except matching to macBSSID. If FALSE, get all session.
+                        This argument is ignored if macBSSID is NULL.
  @see
  @return Number of sessions in use
 */
 wpt_uint8
 WDI_GetActiveSessionsCount
-( 
-  WDI_ControlBlockType*   pWDICtx
+(
+  WDI_ControlBlockType*   pWDICtx,
+  wpt_macAddr             macBSSID,
+  wpt_boolean             skipBSSID
 );
 
 /**
