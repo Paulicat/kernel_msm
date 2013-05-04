@@ -711,6 +711,7 @@ typedef enum
 
   WDI_SET_TX_POWER_RESP                         = 81,
   WDI_START_ROAM_CANDIDATE_LOOKUP_RESP          = 82,
+
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
@@ -5156,6 +5157,24 @@ WDI_ProcessUpdateVHTOpModeRsp
   WDI_EventInfoType*     pEventData
 );
 #endif
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+/**
+ *  @brief WDI_wdiEdTypeEncToEdTypeEnc -
+ *  The firmware expects the Encryption type to be in EdType.
+ *  This function converts the WdiEdType encryption to EdType.
+ *  @param tEdType    : EdType to which the encryption needs to be converted.
+ *  @param WDI_EdType : wdiEdType passed from the upper layer.
+ *  @see
+ *  @return none
+ *  */
+void
+WDI_wdiEdTypeEncToEdTypeEnc
+(
+ tEdType *EdType,
+ WDI_EdType wdiEdType
+);
+#endif
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /**
  *  @brief WDI_wdiEdTypeEncToEdTypeEnc -
