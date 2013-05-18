@@ -142,8 +142,6 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #define MEMORY_DEBUG_STR ""
 #endif
 
-#define MAX_RESTART_DRIVER_EVENT_LENGTH 30
-
 /* the Android framework expects this param even though we don't use it */
 #define BUF_LEN 20
 static char fwpath_buffer[BUF_LEN];
@@ -3023,6 +3021,7 @@ void hdd_set_pwrparams(hdd_context_t *pHddCtx)
    tSirSetPowerParamsReq powerRequest = { 0 };
 
    powerRequest.uIgnoreDTIM = 1;
+   powerRequest.uMaxLIModulatedDTIM = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
 
    if (pHddCtx->cfg_ini->enableModulatedDTIM)
    {
@@ -3055,6 +3054,7 @@ void hdd_reset_pwrparams(hdd_context_t *pHddCtx)
 
    powerRequest.uIgnoreDTIM = pHddCtx->hdd_actual_ignore_DTIM_value;
    powerRequest.uListenInterval = pHddCtx->hdd_actual_LI_value;
+   powerRequest.uMaxLIModulatedDTIM = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
 
    /* Update ignoreDTIM and ListedInterval in CFG with default values */
    ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, powerRequest.uIgnoreDTIM,
@@ -4701,7 +4701,7 @@ void hdd_allow_suspend(void)
 void hdd_allow_suspend_timeout(v_U32_t timeout)
 {
 #ifdef WLAN_OPEN_SOURCE
-    wake_lock_timeout(&wlan_wake_lock, timeout);
+    wake_lock_timeout(&wlan_wake_lock, msecs_to_jiffies(timeout));
 #else
     /* Do nothing as there is no API in wcnss for timeout*/
 #endif
@@ -5445,6 +5445,9 @@ static int hdd_driver_init( void)
    v_CONTEXT_t pVosContext = NULL;
    struct device *dev = NULL;
    int ret_status = 0;
+#ifdef HAVE_WCNSS_CAL_DOWNLOAD
+   int max_retries = 0;
+#endif
 
    ENTER();
 
@@ -5471,6 +5474,18 @@ static int hdd_driver_init( void)
 #endif // ANI_BUS_TYPE_PCI
 
 #ifdef ANI_BUS_TYPE_PLATFORM
+
+#ifdef HAVE_WCNSS_CAL_DOWNLOAD
+   /* wait until WCNSS driver downloads NV */
+   while (!wcnss_device_ready() && 5 >= ++max_retries) {
+       msleep(1000);
+   }
+   if (max_retries >= 5) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WCNSS driver not ready", __func__);
+      return -ENODEV;
+   }
+#endif
+
    dev = wcnss_wlan_get_device();
 #endif // ANI_BUS_TYPE_PLATFORM
 
@@ -6065,8 +6080,18 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
-   unsigned char restart_notification[MAX_RESTART_DRIVER_EVENT_LENGTH + 1];
-   union iwreq_data wrqu;
+   int len = (sizeof (struct ieee80211_mgmt));
+   struct ieee80211_mgmt *mgmt = NULL; 
+   
+   /* Prepare the DEAUTH managment frame with reason code */
+   mgmt =  kzalloc(len, GFP_KERNEL);
+   if(mgmt == NULL) 
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, 
+            "%s: memory allocation failed (%d bytes)", __func__, len);
+      return VOS_STATUS_E_NOMEM;
+   }
+   mgmt->u.deauth.reason_code = WLAN_REASON_DISASSOC_LOW_ACK;
 
    /* Iterate over all adapters/devices */
    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
@@ -6081,21 +6106,27 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
                pAdapterNode->pAdapter->dev->name,
                pAdapterNode->pAdapter->device_mode,
                pHddCtx->hdd_restart_retries + 1);
-
-          /* Notify the wpa supplicant of wcnss restart by sending the custom event */
-          memset(&wrqu, 0 , sizeof(wrqu));
-          memset(restart_notification, 0, sizeof(restart_notification));
-
-          strlcpy(restart_notification, "QCOM: RESTART_DRIVER_DXE", sizeof(restart_notification));
-
-          wrqu.data.pointer = restart_notification;
-          wrqu.data.length = strlen(restart_notification);
-
-          wireless_send_event(pAdapterNode->pAdapter->dev, IWEVCUSTOM, &wrqu, restart_notification);
+         /* 
+          * CFG80211 event to restart the driver
+          * 
+          * 'cfg80211_send_unprot_deauth' sends a 
+          * NL80211_CMD_UNPROT_DEAUTHENTICATE event to supplicant at any state 
+          * of SME(Linux Kernel) state machine.
+          *
+          * Reason code WLAN_REASON_DISASSOC_LOW_ACK is currently used to restart
+          * the driver.
+          *
+          */
+         
+         cfg80211_send_unprot_deauth(pAdapterNode->pAdapter->dev, (u_int8_t*)mgmt, len );  
       }
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    } while((NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status));
+
+
+   /* Free the allocated management frame */
+   kfree(mgmt);
 
    /* Retry until we unload or reach max count */
    if(++pHddCtx->hdd_restart_retries < WLAN_HDD_RESTART_RETRY_MAX_CNT) 

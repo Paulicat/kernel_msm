@@ -1716,6 +1716,9 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_TDLS_DEL_STA_IND:
           case eWNI_SME_TDLS_DEL_ALL_PEER_IND:
           case eWNI_SME_MGMT_FRM_TX_COMPLETION_IND:
+#ifdef FEATURE_WLAN_TDLS_OXYGEN_DISAPPEAR_AP
+          case eWNI_SME_TDLS_AP_DISAPPEAR_IND:
+#endif
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
           case eWNI_SME_TDLS_DISCOVERY_START_RSP:
           case eWNI_SME_TDLS_DISCOVERY_START_IND:
@@ -5985,6 +5988,8 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    eHalStatus status = eHAL_STATUS_SUCCESS;
    tSirPrefNetworkFoundInd *pPrefNetworkFoundInd = (tSirPrefNetworkFoundInd *)pMsg;
+   v_U8_t dumpSsId[SIR_MAC_MAX_SSID_LENGTH + 1];
+   tANI_U8 ssIdLength = 0;
 
    if (NULL == pMsg)
    {
@@ -5995,16 +6000,37 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
    {
       if (pPrefNetworkFoundInd->ssId.length > 0)
       {
-          smsLog(pMac, LOG1, "Preferred Network Found Indication in %s(), SSID=%s",
-                 __func__, pPrefNetworkFoundInd->ssId.ssId);
+         ssIdLength = CSR_MIN(SIR_MAC_MAX_SSID_LENGTH,
+                              pPrefNetworkFoundInd->ssId.length);
+         vos_mem_copy(dumpSsId, pPrefNetworkFoundInd->ssId.ssId, ssIdLength);
+         dumpSsId[ssIdLength] = 0;
+         smsLog(pMac, LOG2, "%s:SSID=%s frame length %d",
+             __func__, dumpSsId, pPrefNetworkFoundInd->frameLength);
 
-
-         /* Call Preferred Netowrk Found Indication callback routine. */
-         if (pMac->pmc.prefNetwFoundCB != NULL)
-         {    
-               pMac->pmc.prefNetwFoundCB(pMac->pmc.preferredNetworkFoundIndCallbackContext, pPrefNetworkFoundInd);
+         //Save the frame to scan result
+         if (pPrefNetworkFoundInd->mesgLen > sizeof(tSirPrefNetworkFoundInd))
+         {
+            //we may have a frame
+            status = csrScanSavePreferredNetworkFound(pMac,
+                        pPrefNetworkFoundInd);
+            if (!HAL_STATUS_SUCCESS(status))
+            {
+               smsLog(pMac, LOGE, FL(" fail to save preferred network"));
+            }
+         }
+         else
+         {
+            smsLog(pMac, LOGE, FL(" not enough data length %d needed %d"),
+               pPrefNetworkFoundInd->mesgLen, sizeof(tSirPrefNetworkFoundInd));
          }
 
+         /* Call Preferred Netowrk Found Indication callback routine. */
+         if (HAL_STATUS_SUCCESS(status) && (pMac->pmc.prefNetwFoundCB != NULL))
+         {
+            pMac->pmc.prefNetwFoundCB(
+                pMac->pmc.preferredNetworkFoundIndCallbackContext,
+                pPrefNetworkFoundInd);
+         }
       }
       else
       {
@@ -8210,3 +8236,96 @@ void sme_UpdateEnableSSR(tHalHandle hHal, tANI_BOOLEAN enableSSR)
     }
     return;
 }
+
+/*
+ * SME API to determine the channel bonding mode
+ */
+VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 channel)
+{
+   tSmeConfigParams  smeConfig;
+   tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
+
+   if (
+#ifdef WLAN_FEATURE_11AC
+         eCSR_DOT11_MODE_11ac != eCsrPhyMode &&
+         eCSR_DOT11_MODE_11ac_ONLY != eCsrPhyMode &&
+#endif
+         eCSR_DOT11_MODE_11n != eCsrPhyMode &&
+         eCSR_DOT11_MODE_11n_ONLY != eCsrPhyMode
+      )
+   {
+      return VOS_STATUS_SUCCESS;
+   }
+
+   /* If channel bonding mode is not required */
+   if ( !pMac->roam.configParam.channelBondingMode5GHz ) {
+      return VOS_STATUS_SUCCESS;
+   }
+
+   vos_mem_zero(&smeConfig, sizeof (tSmeConfigParams));
+   sme_GetConfigParam(pMac, &smeConfig);
+
+#ifdef WLAN_FEATURE_11AC
+   if ( eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
+         eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode )
+   {
+      if ( channel== 36 || channel == 52 || channel == 100 ||
+            channel == 116 || channel == 149 )
+      {
+         smeConfig.csrConfig.channelBondingMode5GHz =
+            PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW - 1;
+      }
+      else if ( channel == 40 || channel == 56 || channel == 104 ||
+            channel == 120 || channel == 153 )
+      {
+         smeConfig.csrConfig.channelBondingMode5GHz =
+            PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW - 1;
+      }
+      else if ( channel == 44 || channel == 60 || channel == 108 ||
+            channel == 124 || channel == 157 )
+      {
+         smeConfig.csrConfig.channelBondingMode5GHz =
+            PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH -1;
+      }
+      else if ( channel == 48 || channel == 64 || channel == 112 ||
+            channel == 128 || channel == 161 )
+      {
+         smeConfig.csrConfig.channelBondingMode5GHz =
+            PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH - 1;
+      }
+      else if ( channel == 165 )
+      {
+         smeConfig.csrConfig.channelBondingMode5GHz = 0;
+      }
+   }
+#endif
+
+   if ( eCSR_DOT11_MODE_11n == eCsrPhyMode ||
+         eCSR_DOT11_MODE_11n_ONLY == eCsrPhyMode )
+   {
+      if ( channel== 40 || channel == 48 || channel == 56 ||
+            channel == 64 || channel == 104 || channel == 112 ||
+            channel == 120 || channel == 128 || channel == 136 ||
+            channel == 144 || channel == 153 || channel == 161 )
+      {
+         smeConfig.csrConfig.channelBondingMode5GHz = 1;
+      }
+      else if ( channel== 36 || channel == 44 || channel == 52 ||
+            channel == 60 || channel == 100 || channel == 108 ||
+            channel == 116 || channel == 124 || channel == 132 ||
+            channel == 140 || channel == 149 || channel == 157 )
+      {
+         smeConfig.csrConfig.channelBondingMode5GHz = 2;
+      }
+      else if ( channel == 165 )
+      {
+         smeConfig.csrConfig.channelBondingMode5GHz = 0;
+      }
+   }
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "cbmode selected=%ld\n", smeConfig.csrConfig.channelBondingMode5GHz);
+
+   sme_UpdateConfig (pMac, &smeConfig);
+   return VOS_STATUS_SUCCESS;
+}
+

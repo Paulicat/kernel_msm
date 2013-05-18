@@ -172,10 +172,10 @@
 #define WLAN_HDD_PUBLIC_ACTION_TDLS_DISC_RESP 14
 #define WLAN_HDD_TDLS_ACTION_FRAME 12
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-#define HDD_WAKE_LOCK_DURATION 50
+#define HDD_WAKE_LOCK_DURATION 500 //in msecs
 #endif
 
-#define HDD_SAP_WAKE_LOCK_DURATION 10000 //10 sec
+#define HDD_SAP_WAKE_LOCK_DURATION 10000 //in msecs
 
 /* Maximum number of interfaces allowed(STA, P2P Device, P2P Interface) */
 #define WLAN_MAX_INTERFACES 3
@@ -184,6 +184,9 @@
 #define GTK_OFFLOAD_ENABLE  0
 #define GTK_OFFLOAD_DISABLE 1
 #endif
+
+#define HDD_MAC_ADDR_LEN    6
+typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -276,6 +279,12 @@ typedef struct roaming_info_s
 {
    HDD_ROAM_STATE roamingState;
    vos_event_t roamingEvent;
+
+   tWlanHddMacAddr bssid;
+   tWlanHddMacAddr peerMac;
+   tANI_U32 roamId;
+   eRoamCmdStatus roamStatus;
+   v_BOOL_t deferKeyComplete;
    
 } roaming_info_t;
 
@@ -412,7 +421,7 @@ typedef enum device_mode
    WLAN_HDD_MONITOR,
    WLAN_HDD_FTM,
    WLAN_HDD_IBSS,
-   WLAN_HDD_P2P_DEVICE,
+   WLAN_HDD_P2P_DEVICE
 }device_mode_t;
 
 typedef enum rem_on_channel_request_type

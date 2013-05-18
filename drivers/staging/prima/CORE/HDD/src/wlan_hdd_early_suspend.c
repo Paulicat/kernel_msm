@@ -861,7 +861,8 @@ void hdd_suspend_wlan(void)
       tSirSetPowerParamsReq powerRequest = { 0 };
 
       powerRequest.uIgnoreDTIM = 1;
-  
+      powerRequest.uMaxLIModulatedDTIM = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
+
       /*Back up the actual values from CFG */
       wlan_cfgGetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, 
                               &pHddCtx->hdd_actual_ignore_DTIM_value);
@@ -1143,6 +1144,7 @@ void hdd_resume_wlan(void)
 
          powerRequest.uIgnoreDTIM = pHddCtx->hdd_actual_ignore_DTIM_value;
          powerRequest.uListenInterval = pHddCtx->hdd_actual_LI_value;
+         powerRequest.uMaxLIModulatedDTIM = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
 
          /*Disabled ModulatedDTIM if enabled on suspend*/
          if(pHddCtx->cfg_ini->enableModulatedDTIM)
@@ -1410,6 +1412,9 @@ VOS_STATUS hdd_wlan_re_init(void)
    v_CONTEXT_t      pVosContext = NULL;
    hdd_context_t    *pHddCtx = NULL;
    eHalStatus       halStatus;
+#ifdef HAVE_WCNSS_CAL_DOWNLOAD
+   int              max_retries = 0;
+#endif
 #ifdef WLAN_BTAMP_FEATURE
    hdd_config_t     *pConfig = NULL;
    WLANBAP_ConfigType btAmpConfig;
@@ -1417,6 +1422,17 @@ VOS_STATUS hdd_wlan_re_init(void)
 
    hdd_ssr_timer_del();
    hdd_prevent_suspend();
+
+#ifdef HAVE_WCNSS_CAL_DOWNLOAD
+   /* wait until WCNSS driver downloads NV */
+   while (!wcnss_device_ready() && 5 >= ++max_retries) {
+       msleep(1000);
+   }
+   if (max_retries >= 5) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WCNSS driver not ready", __func__);
+      goto err_re_init;
+   }
+#endif
 
    /* The driver should always be initialized in STA mode after SSR */
    hdd_set_conparam(0);

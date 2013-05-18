@@ -105,7 +105,7 @@
 #define QCOM_OUI2         0xA0
 #define QCOM_OUI3         0xC6
 #define QCOM_VENDOR_IE_AGE_TYPE  0x100
-#define QCOM_VENDOR_IE_AGE_LEN   4
+#define QCOM_VENDOR_IE_AGE_LEN   11
 
 #ifdef FEATURE_WLAN_TDLS
 #define WLAN_IS_TDLS_SETUP_ACTION(action) \
@@ -166,6 +166,5 @@ int wlan_hdd_cfg80211_send_tdls_discover_req(struct wiphy *wiphy,
 extern void wlan_hdd_cfg80211_update_replayCounterCallback(void *callbackContext,
                             tpSirGtkOffloadGetInfoRspParams pGtkOffloadGetInfoRsp);
 #endif
-
 
 #endif

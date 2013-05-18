@@ -655,6 +655,11 @@ typedef enum
 #define CFG_IGNORE_DTIM_MAX                    WNI_CFG_IGNORE_DTIM_STAMAX
 #define CFG_IGNORE_DTIM_DEFAULT                WNI_CFG_IGNORE_DTIM_STADEF
 
+#define CFG_MAX_LI_MODULATED_DTIM_NAME         "gMaxLIModulatedDTIM"
+#define CFG_MAX_LI_MODULATED_DTIM_MIN          ( 1 )
+#define CFG_MAX_LI_MODULATED_DTIM_MAX          ( 10 )
+#define CFG_MAX_LI_MODULATED_DTIM_DEFAULT      ( 10 )
+
 #define CFG_RX_ANT_CONFIGURATION_NAME          "gNumRxAnt"
 #define CFG_RX_ANT_CONFIGURATION_NAME_MIN      ( 1 )
 #define CFG_RX_ANT_CONFIGURATION_NAME_MAX      ( 2 )
@@ -1697,9 +1702,6 @@ typedef enum
 #define CFG_LIST_OF_NON_DFS_COUNTRY_CODE                    "gListOfNonDfsCountryCode"
 #define CFG_LIST_OF_NON_DFS_COUNTRY_CODE_DEFAULT            "JO,MA"
 
-#define CFG_LIST_OF_NON_11AC_COUNTRY_CODE                    "gListOfNon11acCountryCode"
-#define CFG_LIST_OF_NON_11AC_COUNTRY_CODE_DEFAULT            "RU,UA,ZA"
-
 /*
  * IBSS Operating Channels for 2.4G and 5GHz channels
  */
@@ -1708,11 +1710,13 @@ typedef enum
 #define CFG_IBSS_ADHOC_CHANNEL_5GHZ_MAX           ( 165 )
 #define CFG_IBSS_ADHOC_CHANNEL_5GHZ_DEFAULT       ( 44 )
 
-
 #define CFG_IBSS_ADHOC_CHANNEL_24GHZ_NAME         "gAdHocChannel24G"
 #define CFG_IBSS_ADHOC_CHANNEL_24GHZ_MIN          ( 1 )
 #define CFG_IBSS_ADHOC_CHANNEL_24GHZ_MAX          ( 14 )
 #define CFG_IBSS_ADHOC_CHANNEL_24GHZ_DEFAULT      ( 6 )
+
+#define CFG_LIST_OF_NON_11AC_COUNTRY_CODE                    "gListOfNon11acCountryCode"
+#define CFG_LIST_OF_NON_11AC_COUNTRY_CODE_DEFAULT            "RU,UA,ZA"
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -1881,6 +1885,7 @@ typedef struct
 
    v_U8_t         nRssiFilterPeriod;
    v_BOOL_t       fIgnoreDtim;
+   v_U8_t         fMaxLIModulatedDTIM;
 
    v_U8_t         nRxAnt;
    v_U8_t         fEnableFwHeartBeatMonitoring;
