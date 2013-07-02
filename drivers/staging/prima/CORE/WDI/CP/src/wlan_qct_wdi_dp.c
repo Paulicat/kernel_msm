@@ -933,7 +933,6 @@ WDI_FillTxBd
                   (ucSTAType == WDI_STA_ENTRY_TDLS_PEER ) &&
 #endif
                   (ucTxFlag & WDI_TRIGGER_ENABLED_AC_MASK)))
-
        {
            pBd->dpuRF = BMUWQ_FW_DPU_TX;
        }
