@@ -76,7 +76,8 @@
 
 #define CSR_REST_TIME_CONC                  100
 
-#define CSR_NUM_CHAN_COMBINED_CONC          1
+#define CSR_NUM_STA_CHAN_COMBINED_CONC      3
+#define CSR_NUM_P2P_CHAN_COMBINED_CONC      1
 #endif
 
 #define CSR_MAX_NUM_SUPPORTED_CHANNELS 55
@@ -258,7 +259,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
 eHalStatus csrScanFreeRequest(tpAniSirGlobal pMac, tCsrScanRequest *pReq);
 eHalStatus csrScanCopyResultList(tpAniSirGlobal pMac, tScanResultHandle hIn, tScanResultHandle *phResult);
 void csrInitBGScanChannelList(tpAniSirGlobal pMac);
-eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile, tANI_U32 roamId);
+eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile, tANI_U32 roamId, tANI_BOOLEAN notify);
 eHalStatus csrScanForCapabilityChange(tpAniSirGlobal pMac, tSirSmeApNewCaps *pNewCaps);
 eHalStatus csrScanStartGetResultTimer(tpAniSirGlobal pMac);
 eHalStatus csrScanStopGetResultTimer(tpAniSirGlobal pMac);
@@ -409,8 +410,10 @@ eHalStatus csrScanGetSupportedChannels( tpAniSirGlobal pMac );
 //pIes cannot be NULL
 tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11fBeaconIEs *pIes );
 eHalStatus csrRoamSetKey( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 roamId );
-eHalStatus csrRoamOpenSession( tpAniSirGlobal pMac, csrRoamCompleteCallback callback, void *pContext,
-                          tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId );
+eHalStatus csrRoamOpenSession(tpAniSirGlobal pMac,
+                              csrRoamCompleteCallback callback,
+                              void *pContext, tANI_U8 *pSelfMacAddr,
+                              tANI_U8 *pbSessionId);
 //fSync: TRUE means cleanupneeds to handle synchronously.
 eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId,
                                 tANI_BOOLEAN fSync, 
@@ -967,5 +970,11 @@ tANI_BOOLEAN csrNeighborRoamConnectedProfileMatch(tpAniSirGlobal pMac, tCsrScanR
                                                   tDot11fBeaconIEs *pIes);
 #endif
 eHalStatus csrSetTxPower(tpAniSirGlobal pMac, v_U8_t sessionId, v_U8_t mW);
+
+eHalStatus csrScanCreateEntryInScanCache(tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                         tCsrBssid bssid, tANI_U8 channel);
+
+eHalStatus csrUpdateChannelList(tCsrScanStruct *pScan);
+
 #endif
 

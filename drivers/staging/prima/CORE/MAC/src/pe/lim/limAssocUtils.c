@@ -39,8 +39,8 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limAssocUtils.cc contains the utility functions
  * LIM uses while processing (Re) Association messages.
  * Author:        Chandra Modumudi
@@ -323,7 +323,7 @@ limCheckRxBasicRates(tpAniSirGlobal pMac, tSirMacRateSet rxRateSet,tpPESession p
     for (k = 0; k < j; k++)
     {
         match = 0;
-        for (i = 0; i < rxRateSet.numRates; i++)
+        for (i = 0; ((i < rxRateSet.numRates) && (i < SIR_MAC_RATESET_EID_MAX)); i++)
         {
             if ((rxRateSet.rate[i] | 0x80) ==    basicRate.rate[k])
                 match = 1;
@@ -2655,8 +2655,7 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
 #ifdef WLAN_FEATURE_11AC
     pAddStaParams->vhtCapable = IS_DOT11_MODE_VHT(selfStaDot11Mode);
     if (pAddStaParams->vhtCapable){
-        pAddStaParams->vhtTxChannelWidthSet =
-            pMac->roam.configParam.nVhtChannelWidth;
+        pAddStaParams->vhtTxChannelWidthSet = psessionEntry->vhtTxChannelWidthSet;
         limLog( pMac, LOG1, FL("VHT WIDTH SET %d"),pAddStaParams->vhtTxChannelWidthSet);
     }
     pAddStaParams->vhtTxBFCapable = psessionEntry->txBFIniFeatureEnabled;
@@ -3304,29 +3303,32 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
         pAddBssParams->staContext.maxSPLen = 0;
         pAddBssParams->staContext.shortPreambleSupported = (tANI_U8)pAssocRsp->capabilityInfo.shortPreamble;
         pAddBssParams->staContext.updateSta = updateEntry;
-
-        if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && ( pBeaconStruct->HTCaps.present ))
+        if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && pBeaconStruct->HTCaps.present)
         {
             pAddBssParams->staContext.us32MaxAmpduDuration = 0;
             pAddBssParams->staContext.htCapable = 1;
             pAddBssParams->staContext.greenFieldCapable  = ( tANI_U8 )pAssocRsp->HTCaps.greenField;
             pAddBssParams->staContext.lsigTxopProtection = ( tANI_U8 )pAssocRsp->HTCaps.lsigTXOPProtection;
+#ifdef WLAN_FEATURE_11AC
+            if (psessionEntry->vhtCapability && pBeaconStruct->VHTCaps.present)
+            {
+                pAddBssParams->staContext.vhtCapable = 1;
+                if ((pAssocRsp->VHTCaps.suBeamFormerCap ||
+                     pAssocRsp->VHTCaps.muBeamformerCap) &&
+                     psessionEntry->txBFIniFeatureEnabled)
+                {
+                    pAddBssParams->staContext.vhtTxBFCapable = 1;
+                }
+            }
+#endif
             if( (pAssocRsp->HTCaps.supportedChannelWidthSet) &&
                 (chanWidthSupp) )
             {
                 pAddBssParams->staContext.txChannelWidthSet = ( tANI_U8 )pAssocRsp->HTInfo.recommendedTxWidthSet;
-                
 #ifdef WLAN_FEATURE_11AC
-                if (psessionEntry->vhtCapability && ( pBeaconStruct->VHTCaps.present ))
+                if (pAddBssParams->staContext.vhtCapable)
                 {
-                    pAddBssParams->staContext.vhtCapable = 1;
                     pAddBssParams->staContext.vhtTxChannelWidthSet = pAssocRsp->VHTOperation.chanWidth; //pMac->lim.apChanWidth;
-                    if ( (pAssocRsp->VHTCaps.suBeamFormerCap ||
-                          pAssocRsp->VHTCaps.muBeamformerCap) &&
-                          psessionEntry->txBFIniFeatureEnabled )
-                    {
-                        pAddBssParams->staContext.vhtTxBFCapable = 1;
-                    }
                 }
 #endif
             }
@@ -3607,23 +3609,29 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
             pAddBssParams->staContext.htCapable = 1;
             pAddBssParams->staContext.greenFieldCapable  = ( tANI_U8 ) pBeaconStruct->HTCaps.greenField;
             pAddBssParams->staContext.lsigTxopProtection = ( tANI_U8 ) pBeaconStruct->HTCaps.lsigTXOPProtection;
+#ifdef WLAN_FEATURE_11AC
+            if (psessionEntry->vhtCapability && pBeaconStruct->VHTCaps.present)
+            {
+                pAddBssParams->staContext.vhtCapable = 1;
+                if ((pBeaconStruct->VHTCaps.suBeamFormerCap ||
+                     pBeaconStruct->VHTCaps.muBeamformerCap) &&
+                     psessionEntry->txBFIniFeatureEnabled )
+                {
+                    pAddBssParams->staContext.vhtTxBFCapable = 1;
+                }
+            }
+#endif
             if( (pBeaconStruct->HTCaps.supportedChannelWidthSet) &&
                 (chanWidthSupp) )
             {
                 pAddBssParams->staContext.txChannelWidthSet = ( tANI_U8 )pBeaconStruct->HTInfo.recommendedTxWidthSet;
-          #ifdef WLAN_FEATURE_11AC
-                if (psessionEntry->vhtCapability && ( pBeaconStruct->VHTCaps.present ))
+#ifdef WLAN_FEATURE_11AC
+                if (pAddBssParams->staContext.vhtCapable)
                 {
-                    pAddBssParams->staContext.vhtCapable = 1;
-                    pAddBssParams->staContext.vhtTxChannelWidthSet = pBeaconStruct->VHTOperation.chanWidth; 
-                    if ((pBeaconStruct->VHTCaps.suBeamFormerCap ||
-                         pBeaconStruct->VHTCaps.muBeamformerCap) &&
-                         psessionEntry->txBFIniFeatureEnabled )
-                    {
-                        pAddBssParams->staContext.vhtTxBFCapable = 1;
-                    }
+                    pAddBssParams->staContext.vhtTxChannelWidthSet =
+                                     pBeaconStruct->VHTOperation.chanWidth;
                 }
-          #endif
+#endif
             }
             else
             {
