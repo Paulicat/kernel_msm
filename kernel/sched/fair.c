@@ -2878,6 +2878,23 @@ static unsigned long cpu_avg_load_per_task(int cpu)
 	return 0;
 }
 
+static void record_wakee(struct task_struct *p)
+{
+	/*
+	 * Rough decay (wiping) for cost saving, don't worry
+	 * about the boundary, really active task won't care
+	 * about the loss.
+	 */
+	if (jiffies > current->wakee_flip_decay_ts + HZ) {
+		current->wakee_flips = 0;
+		current->wakee_flip_decay_ts = jiffies;
+	}
+
+	if (current->last_wakee != p) {
+		current->last_wakee = p;
+		current->wakee_flips++;
+	}
+}
 
 static void task_waking_fair(struct task_struct *p)
 {
@@ -2898,6 +2915,7 @@ static void task_waking_fair(struct task_struct *p)
 #endif
 
 	se->vruntime -= min_vruntime;
+	record_wakee(p);
 }
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -3016,39 +3034,22 @@ static inline unsigned long effective_load(struct task_group *tg, int cpu,
 
 #endif
 
-static void record_wakee(struct task_struct *p)
+static int wake_wide(struct task_struct *p)
 {
-	/*
-	 * Rough decay, don't worry about the boundary, really active
-	 * task won't care the loose.
-	 */
-	if (jiffies > current->last_switch_decay + HZ) {
-		current->nr_wakee_switch = 0;
-		current->last_switch_decay = jiffies;
-	}
-
-	if (current->last_wakee != p) {
-		current->last_wakee = p;
-		current->nr_wakee_switch++;
-	}
-}
-
-static int nasty_pull(struct task_struct *p)
-{
-	int factor = cpumask_weight(cpu_online_mask);
+	int factor = this_cpu_read(sd_llc_size);
 
 	/*
 	 * Yeah, it's the switching-frequency, could means many wakee or
 	 * rapidly switch, use factor here will just help to automatically
-	 * adjust the loose-degree, so more cpu will lead to more pull.
+	 * adjust the loose-degree, so bigger node will lead to more pull.
 	 */
-	if (p->nr_wakee_switch > factor) {
+	if (p->wakee_flips > factor) {
 		/*
 		 * wakee is somewhat hot, it needs certain amount of cpu
 		 * resource, so if waker is far more hot, prefer to leave
 		 * it alone.
 		 */
-		if (current->nr_wakee_switch > (factor * p->nr_wakee_switch))
+		if (current->wakee_flips > (factor * p->wakee_flips))
 			return 1;
 	}
 
@@ -3064,7 +3065,11 @@ static int wake_affine(struct sched_domain *sd, struct task_struct *p, int sync)
 	unsigned long weight;
 	int balanced;
 
-	if (nasty_pull(p))
+	/*
+	 * If we wake multiple tasks be careful to not bounce
+	 * ourselves around too much.
+	 */
+	if (wake_wide(p))
 		return 0;
 
 	idx	  = sd->wake_idx;
@@ -3447,9 +3452,6 @@ select_task_rq_fair(struct task_struct *p, int sd_flag, int wake_flags)
 		/* while loop will break here if sd == NULL */
 	}
 unlock:
-	if (sd_flag & SD_BALANCE_WAKE)
-		record_wakee(p);
-
 	rcu_read_unlock();
 
 	return new_cpu;

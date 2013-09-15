@@ -1265,8 +1265,8 @@ struct task_struct {
 	struct llist_node wake_entry;
 	int on_cpu;
 	struct task_struct *last_wakee;
-	unsigned long nr_wakee_switch;
-	unsigned long last_switch_decay;
+	unsigned long wakee_flips;
+	unsigned long wakee_flip_decay_ts;
 #endif
 	int on_rq;
 
