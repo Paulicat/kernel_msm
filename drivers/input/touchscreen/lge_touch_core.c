@@ -79,6 +79,12 @@ struct lge_touch_attribute {
 	ssize_t (*store)(struct lge_touch_data *ts, const char *buf, size_t count);
 };
 
+bool suspended = false;
+
+bool touch_to_wake = false;
+module_param(touch_to_wake, bool, 0664);
+
+
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)	\
 struct lge_touch_attribute lge_touch_attr_##_name = __ATTR(_name, _mode, _show, _store)
 
@@ -1673,6 +1679,21 @@ static void touch_work_post_proc(struct lge_touch_data *ts, int post_proc)
 		touch_work_post_proc(ts, post_proc);
 }
 
+struct double_tap_to_wake {
+	unsigned long touch_time;
+	unsigned long continuous_touch_time;
+	unsigned int touches;
+	struct input_dev *input_device;
+};
+
+static struct double_tap_to_wake wake;
+
+void wake_up_display(struct input_dev *input_dev)
+{
+	wake.input_device = input_dev;
+	return;
+}
+
 /* touch_work_func_a
  *
  * HARD_TOUCH_KEY
@@ -1683,6 +1704,44 @@ static void touch_work_func_a(struct work_struct *work)
 			container_of(work, struct lge_touch_data, work);
 	u8 report_enable = 0;
 	int ret = 0;
+
+	if (suspended && touch_to_wake)
+	{
+		if (wake.touches == 0)
+			wake.continuous_touch_time = ktime_to_ms(ktime_get());
+
+		if (wake.touch_time == 0)
+			wake.touch_time = ktime_to_ms(ktime_get());
+
+		if (wake.touch_time > 0)
+		{
+			if (wake.touch_time + 2000 >= ktime_to_ms(ktime_get()))
+			{
+				if (wake.touches < 2)
+				{
+					if (wake.continuous_touch_time + (wake.touches * 100) <= ktime_to_ms(ktime_get()))
+					{
+						pr_info("Touches: %d\n", wake.touches);
+						wake.touches++;
+					}
+				}
+			}
+			else
+			{
+				wake.touch_time = 0;
+				wake.touches = 0;	
+			}
+
+			if (wake.touches == 2)
+			{
+				input_event(wake.input_device, EV_KEY, KEY_POWER, 1);
+				input_event(wake.input_device, EV_SYN, 0, 0);
+				msleep(100);
+				input_event(wake.input_device, EV_KEY, KEY_POWER, 0);
+				input_event(wake.input_device, EV_SYN, 0, 0);
+			}						
+		}
+	} 
 
 #ifdef CUST_G_TOUCH
 	if (ts->pdata->role->ghost_detection_enable) {
@@ -3304,6 +3363,10 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 	int ret = 0;
 	int one_sec = 0;
 
+  	wake.touch_time = 0;
+  	wake.continuous_touch_time = 0;
+	wake.touches = 0;
+
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
 
@@ -3629,8 +3692,7 @@ static void touch_early_suspend(struct early_suspend *h)
 	struct lge_touch_data *ts =
 			container_of(h, struct lge_touch_data, early_suspend);
 
-	if (unlikely(touch_debug_mask & DEBUG_TRACE))
-		TOUCH_DEBUG_MSG("\n");
+	suspended = true;
 
 	if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING){
 		TOUCH_INFO_MSG("early_suspend is not executed\n");
@@ -3642,9 +3704,14 @@ static void touch_early_suspend(struct early_suspend *h)
 		resume_flag = 0;
 	}
 #endif
-
-	if (ts->pdata->role->operation_mode)
-		disable_irq(ts->client->irq);
+  	if (touch_to_wake)
+  	{
+    		enable_irq_wake(ts->client->irq);
+  	}
+  	else 
+  	{
+		if (ts->pdata->role->operation_mode)
+			disable_irq(ts->client->irq);
 	else
 		hrtimer_cancel(&ts->timer);
 #ifdef CUST_G_TOUCH
@@ -3662,21 +3729,19 @@ static void touch_early_suspend(struct early_suspend *h)
 
 	touch_power_cntl(ts, ts->pdata->role->suspend_pwr);
 }
-
+}
 static void touch_late_resume(struct early_suspend *h)
 {
 	struct lge_touch_data *ts =
 			container_of(h, struct lge_touch_data, early_suspend);
 
-	if (unlikely(touch_debug_mask & DEBUG_TRACE))
-		TOUCH_DEBUG_MSG("\n");
+	suspended = false;
 
 	if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING){
 		TOUCH_INFO_MSG("late_resume is not executed\n");
 		return;
 	}
 
-	touch_power_cntl(ts, ts->pdata->role->resume_pwr);
 #ifdef CUST_G_TOUCH
 	if (ts->pdata->role->ghost_detection_enable) {
 		resume_flag = 1;
@@ -3684,16 +3749,27 @@ static void touch_late_resume(struct early_suspend *h)
 	}
 #endif
 
-	if (ts->pdata->role->operation_mode)
-		enable_irq(ts->client->irq);
-	else
-		hrtimer_start(&ts->timer, ktime_set(0, ts->pdata->role->report_period), HRTIMER_MODE_REL);
+  	if (touch_to_wake)
+  	{
+    		disable_irq_wake(ts->client->irq);
+  	}
+   	else
+  	{
+    		touch_power_cntl(ts, ts->pdata->role->resume_pwr);
 
-	if (ts->pdata->role->resume_pwr == POWER_ON)
-		queue_delayed_work(touch_wq, &ts->work_init,
-				msecs_to_jiffies(ts->pdata->role->booting_delay));
-	else
-		queue_delayed_work(touch_wq, &ts->work_init, 0);
+        if (ts->pdata->role->operation_mode == INTERRUPT_MODE)
+                enable_irq(ts->client->irq);
+        else
+                hrtimer_start(&ts->timer,
+                        ktime_set(0, ts->pdata->role->report_period),
+                                        HRTIMER_MODE_REL);
+
+        if (ts->pdata->role->resume_pwr == POWER_ON)
+                queue_delayed_work(touch_wq, &ts->work_init,
+                        msecs_to_jiffies(ts->pdata->role->booting_delay));
+        else
+                queue_delayed_work(touch_wq, &ts->work_init, 0);
+  }
 }
 #endif
 
