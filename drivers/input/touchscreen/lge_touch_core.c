@@ -1719,8 +1719,8 @@ static void touch_work_func_a(struct work_struct *work)
 			/*
 			 * Don't count as touch when we release the touch input
 			 */
-			/* if (ts->ts_data.curr_data[0].state != ABS_RELEASE)
-				++wake.touches; */
+			if (ts->ts_data.state != ABS_RELEASE)
+				++wake.touches;
 
 			if (wake.touches == 2)
 			{
