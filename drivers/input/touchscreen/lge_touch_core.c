@@ -81,9 +81,8 @@ struct lge_touch_attribute {
 
 bool suspended = false;
 
-bool touch_to_wake = false;
-module_param(touch_to_wake, bool, 0664);
-
+bool doubletap_to_wake = false;
+module_param(doubletap_to_wake, bool, 0664);
 
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)	\
 struct lge_touch_attribute lge_touch_attr_##_name = __ATTR(_name, _mode, _show, _store)
@@ -1681,7 +1680,8 @@ static void touch_work_post_proc(struct lge_touch_data *ts, int post_proc)
 
 struct double_tap_to_wake {
 	unsigned long touch_time;
-	unsigned long continuous_touch_time;
+	unsigned long window_time;
+	unsigned long sample_time_ms;
 	unsigned int touches;
 	struct input_dev *input_device;
 };
@@ -1705,32 +1705,22 @@ static void touch_work_func_a(struct work_struct *work)
 	u8 report_enable = 0;
 	int ret = 0;
 
-	if (suspended && touch_to_wake)
+	if (suspended && doubletap_to_wake)
 	{
-		if (wake.touches == 0)
-			wake.continuous_touch_time = ktime_to_ms(ktime_get());
-
-		if (wake.touch_time == 0)
-			wake.touch_time = ktime_to_ms(ktime_get());
-
-		if (wake.touch_time > 0)
+		if (!(wake.touch_time + 2000 >= ktime_to_ms(ktime_get())))
 		{
-			if (wake.touch_time + 2000 >= ktime_to_ms(ktime_get()))
-			{
-				if (wake.touches < 2)
-				{
-					if (wake.continuous_touch_time + (wake.touches * 100) <= ktime_to_ms(ktime_get()))
-					{
-						pr_info("Touches: %d\n", wake.touches);
-						wake.touches++;
-					}
-				}
-			}
-			else
-			{
-				wake.touch_time = 0;
-				wake.touches = 0;	
-			}
+			wake.touch_time = ktime_to_ms(ktime_get());
+			wake.touches = 0;
+		}
+
+		if (!time_is_after_jiffies(
+			wake.window_time + msecs_to_jiffies(wake.sample_time_ms)))
+		{
+			/*
+			 * Don't count as touch when we release the touch input
+			 */
+			/* if (ts->ts_data.curr_data[0].state != ABS_RELEASE)
+				++wake.touches; */
 
 			if (wake.touches == 2)
 			{
@@ -1739,9 +1729,13 @@ static void touch_work_func_a(struct work_struct *work)
 				msleep(100);
 				input_event(wake.input_device, EV_KEY, KEY_POWER, 0);
 				input_event(wake.input_device, EV_SYN, 0, 0);
-			}						
+
+				input_sync(wake.input_device);
+			}
 		}
-	} 
+
+		wake.window_time = jiffies;
+	}
 
 #ifdef CUST_G_TOUCH
 	if (ts->pdata->role->ghost_detection_enable) {
@@ -3363,8 +3357,9 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 	int ret = 0;
 	int one_sec = 0;
 
-  	wake.touch_time = 0;
-  	wake.continuous_touch_time = 0;
+	wake.touch_time = 0;
+	wake.window_time = jiffies;
+	wake.sample_time_ms = 100;
 	wake.touches = 0;
 
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
@@ -3704,7 +3699,7 @@ static void touch_early_suspend(struct early_suspend *h)
 		resume_flag = 0;
 	}
 #endif
-  	if (touch_to_wake)
+  	if (doubletap_to_wake)
   	{
     		enable_irq_wake(ts->client->irq);
   	}
@@ -3749,7 +3744,7 @@ static void touch_late_resume(struct early_suspend *h)
 	}
 #endif
 
-  	if (touch_to_wake)
+  	if (doubletap_to_wake)
   	{
     		disable_irq_wake(ts->client->irq);
   	}
@@ -3824,7 +3819,7 @@ int touch_driver_register(struct touch_device_driver* driver)
 
 	touch_device_func = driver;
 
-	touch_wq = create_singlethread_workqueue("touch_wq");
+	touch_wq = alloc_workqueue("touch_wq", 0, 1);
 	if (!touch_wq) {
 		TOUCH_ERR_MSG("CANNOT create new workqueue\n");
 		ret = -ENOMEM;
