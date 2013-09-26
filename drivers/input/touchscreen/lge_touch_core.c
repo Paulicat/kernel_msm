@@ -3752,7 +3752,7 @@ static void touch_late_resume(struct early_suspend *h)
   	{
     		touch_power_cntl(ts, ts->pdata->role->resume_pwr);
 
-        if (ts->pdata->role->operation_mode == INTERRUPT_MODE)
+        if (ts->pdata->role->operation_mode)
                 enable_irq(ts->client->irq);
         else
                 hrtimer_start(&ts->timer,
