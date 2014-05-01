@@ -31,7 +31,6 @@ VREG_CONSUMERS(L2) = {
 	REGULATOR_SUPPLY("dsi_vdda",		"mipi_dsi.1"),
 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.0"),
 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.1"), 
-	REGULATOR_SUPPLY("dsi_pll_vdda",        "mdp.0"),
 };
 VREG_CONSUMERS(L3) = {
 	REGULATOR_SUPPLY("8921_l3",		NULL),
@@ -50,11 +49,7 @@ VREG_CONSUMERS(L5) = {
 };
 VREG_CONSUMERS(L6) = {
 	REGULATOR_SUPPLY("8921_l6",		NULL),
-#if defined(CONFIG_MMC_MSM_SDC3_SUPPORT)
-	REGULATOR_SUPPLY("sdc_vdd",		"msm_sdcc.3"),
-#else
 	REGULATOR_SUPPLY("earjack_debug",		NULL),
-#endif
 };
 VREG_CONSUMERS(L7) = {
 	REGULATOR_SUPPLY("8921_l7",		NULL),
@@ -113,9 +108,7 @@ VREG_CONSUMERS(L17) = {
 };
 VREG_CONSUMERS(L18) = {
 	REGULATOR_SUPPLY("8921_l18",		NULL),
-#ifdef CONFIG_SLIMPORT_ANX7808
 	REGULATOR_SUPPLY("slimport_dvdd",		NULL),
-#endif
 };
 
 /* Power setting for 13M AF */
@@ -253,7 +246,6 @@ VREG_CONSUMERS(LVS7) = {
 	REGULATOR_SUPPLY("pll_vdd",		"pil_riva"),
 	REGULATOR_SUPPLY("lvds_vdda",		"lvds.0"),
 	REGULATOR_SUPPLY("dsi1_vddio",		"mipi_dsi.1"),
-	REGULATOR_SUPPLY("dsi_pll_vddio",       "mdp.0"),
 	REGULATOR_SUPPLY("hdmi_vdda",		"hdmi_msm.0"),
 };
 VREG_CONSUMERS(NCP) = {
@@ -542,11 +534,7 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
 	RPM_LDO(L3,  0, 1, 0, 3075000, 3500000, NULL,          0,     0),
 	RPM_LDO(L4,  1, 1, 0, 1800000, 1800000, NULL,          0, 10000),
 	RPM_LDO(L5,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
-#if defined(CONFIG_MMC_MSM_SDC3_SUPPORT)
-	RPM_LDO(L6,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
-#else
-	RPM_LDO(L6,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
-#endif
+	RPM_LDO(L6,  0, 1, 0, 3000000, 3000000, NULL,          0,     0),
 	RPM_LDO(L7,  0, 1, 0, 1850000, 2950000, NULL,          0,     0),
 	RPM_LDO(L8,  0, 1, 0, 2800000, 3000000, NULL,          0,     0),
 	RPM_LDO(L9,  0, 1, 0, 3000000, 3000000, NULL,          0,     0),
@@ -557,11 +545,7 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
 	RPM_LDO(L15, 0, 1, 0, 3300000, 3300000, NULL,          0,    19),
 	RPM_LDO(L16, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
 	RPM_LDO(L17, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
-#ifdef CONFIG_SLIMPORT_ANX7808
 	RPM_LDO(L18, 0, 1, 0, 1100000, 1100000, NULL,          0,     0),
-#elif CONFIG_SII8334_MHL_TX
-	RPM_LDO(L18, 0, 1, 0, 1100000, 1300000, NULL,          0,     0),
-#endif
 #if defined(CONFIG_IMX091)
 	RPM_LDO(L21, 0, 1, 0, 1800000, 1800000, "8921_s8",     0,     0),
 #else

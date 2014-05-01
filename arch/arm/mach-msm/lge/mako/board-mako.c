@@ -990,7 +990,7 @@ static struct wcd9xxx_pdata apq8064_tabla20_platform_data = {
 	.micbias = {
 		.ldoh_v = TABLA_LDOH_2P85_V,
 		.cfilt1_mv = 1800,
-		.cfilt2_mv = 2700,
+		.cfilt2_mv = 1800,
 		.cfilt3_mv = 1800,
 		.bias1_cfilt_sel = TABLA_CFILT1_SEL,
 		.bias2_cfilt_sel = TABLA_CFILT2_SEL,
@@ -1852,7 +1852,6 @@ static struct platform_device *cdp_devices[] __initdata = {
 #ifdef CONFIG_MSM_ROTATOR
        &msm_rotator_device,
 #endif
-	&msm8960_cpu_slp_status,
 };
 
 #ifdef CONFIG_USER_RC_INPUT
@@ -2079,12 +2078,7 @@ static void __init apq8064_mako_init(void)
 	lge_add_panic_handler_devices();
 	lge_add_backlight_devices();
 	lge_add_sound_devices();
-#ifdef CONFIG_BCM2079X
 	lge_add_bcm2079x_device();
-#endif
-#ifdef CONFIG_LGE_NFC
-	lge_add_nfc_devices();
-#endif
 #ifdef CONFIG_LGE_QFPROM_INTERFACE
 	lge_add_qfprom_devices();
 #endif
@@ -2114,7 +2108,7 @@ static void __init apq8064_mako_init(void)
 	apq8064_init_misc();
 }
 
-MACHINE_START(APQ8064_MAKO, "QCT APQ8064 GEEB")
+MACHINE_START(APQ8064_MAKO, "QCT APQ8064 MAKO")
 	.map_io = apq8064_map_io,
 	.reserve = apq8064_reserve,
 	.init_irq = apq8064_init_irq,
